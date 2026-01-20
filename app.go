@@ -251,14 +251,14 @@ func (a *App) RegisterContextMenu() error {
 	// 转义反斜杠
 	exePath = strings.ReplaceAll(exePath, "\\", "\\\\")
 
-	// 注册表命令：添加 "Open with MdReader"
-	// HKEY_CLASSES_ROOT\*\shell\MdReader
-	cmd1 := exec.Command("reg", "add", "HKCR\\*\\shell\\MdReader", "/ve", "/d", "用 MdReader 打开", "/f")
-	// HKEY_CLASSES_ROOT\*\shell\MdReader\command
-	cmd2 := exec.Command("reg", "add", "HKCR\\*\\shell\\MdReader\\command", "/ve", "/d", fmt.Sprintf("\"%s\" \"%%1\"", exePath), "/f")
+	// 使用 HKCU\Software\Classes 代替 HKCR，这样不需要管理员权限
+	// HKEY_CURRENT_USER\Software\Classes\*\shell\MdReader
+	cmd1 := exec.Command("reg", "add", "HKCU\\Software\\Classes\\*\\shell\\MdReader", "/ve", "/d", "用 MdReader 打开", "/f")
+	// HKEY_CURRENT_USER\Software\Classes\*\shell\MdReader\command
+	cmd2 := exec.Command("reg", "add", "HKCU\\Software\\Classes\\*\\shell\\MdReader\\command", "/ve", "/d", fmt.Sprintf("\"%s\" \"%%1\"", exePath), "/f")
 
 	// 设置图标 (可选)
-	cmd3 := exec.Command("reg", "add", "HKCR\\*\\shell\\MdReader", "/v", "Icon", "/d", exePath, "/f")
+	cmd3 := exec.Command("reg", "add", "HKCU\\Software\\Classes\\*\\shell\\MdReader", "/v", "Icon", "/d", exePath, "/f")
 
 	if err := cmd1.Run(); err != nil {
 		return fmt.Errorf("failed to add menu key: %v", err)
@@ -273,6 +273,6 @@ func (a *App) RegisterContextMenu() error {
 
 // UnregisterContextMenu removes the context menu item
 func (a *App) UnregisterContextMenu() error {
-	cmd := exec.Command("reg", "delete", "HKCR\\*\\shell\\MdReader", "/f")
+	cmd := exec.Command("reg", "delete", "HKCU\\Software\\Classes\\*\\shell\\MdReader", "/f")
 	return cmd.Run()
 }
