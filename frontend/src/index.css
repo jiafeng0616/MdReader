@@ -35,8 +35,10 @@
   
   background-color: #fff;
   padding: 40px;
-  max-width: 210mm; /* A4 宽度 */
-  margin: 0 auto;
+  width: 210mm; /* A4 宽度 */
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto 40px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   min-height: 297mm; /* A4 高度 */
 }
@@ -47,5 +49,80 @@
     padding: 20px;
     width: 100%;
     box-shadow: none;
+  }
+}
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  html, body, #root, .app-shell {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print,
+  .word-preview-optimizing,
+  .word-preview-loading {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block !important;
+  }
+
+  .app-shell .flex-1 {
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  .app-shell [id^="tab-content-"] {
+    display: none !important;
+  }
+
+  .app-shell [id^="tab-content-"][data-active="true"] {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .app-shell [id^="tab-content-"] > div {
+    zoom: 1 !important;
+  }
+
+  .word-theme {
+    width: auto !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    background: #fff !important;
+  }
+
+  .word-theme table,
+  .word-theme pre,
+  .word-theme img {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .word-theme h1,
+  .word-theme h2,
+  .word-theme h3 {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 }

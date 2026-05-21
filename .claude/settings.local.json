@@ -4,7 +4,9 @@
       "Bash(npx tsc *)",
       "Bash(go build *)",
       "Bash(go doc *)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "WebSearch",
+      "Bash(npm run *)"
     ]
   }
 }

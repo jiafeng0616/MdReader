@@ -109,3 +109,151 @@
   outline: 1px solid rgba(59, 130, 246, 0.6) !important;
 }
 
+/* ---------------------------------------
+   Enhanced table rendering with horizontal scroll
+   --------------------------------------- */
+
+/* -- Table container for horizontal scrolling -- */
+.word-theme table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: auto; /* 自适应内容宽度 */
+  min-width: 0;
+  max-width: 100%; /* 最大不超过容器宽度 */
+  margin: 1.5em 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8125rem; /* 13px，比正文小2号 */
+  line-height: 1.5;
+  display: inline-block; /* 让表格按内容宽度显示 */
+  overflow-x: auto; /* 横向滚动 */
+  -webkit-overflow-scrolling: touch; /* 平滑滚动 */
+}
+
+/* 表头 */
+.word-theme thead {
+  display: table-header-group; /* 保持表头在滚动时可见 */
+}
+
+.word-theme thead th {
+  background-color: #f8fafc;
+  color: #334155;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 2px solid #cbd5e1;
+  white-space: nowrap;
+  position: sticky; /* 固定表头 */
+  top: 0;
+  z-index: 10;
+}
+
+/* 表格内容 */
+.word-theme tbody td {
+  padding: 10px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+  white-space: nowrap; /* 防止单元格内换行，保持表格结构 */
+}
+
+.word-theme tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.word-theme tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* URL链接截断样式 */
+.word-theme td a {
+  display: inline-block;
+  max-width: 300px; /* 限制链接最大宽度 */
+  overflow: hidden;
+  text-overflow: ellipsis; /* 超出部分显示省略号 */
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+/* 鼠标悬停时显示完整链接 */
+.word-theme td a:hover {
+  max-width: none; /* 悬停时显示完整链接 */
+  white-space: normal;
+  word-break: break-all; /* 允许在任意字符处换行 */
+  position: relative;
+  z-index: 20;
+  background-color: inherit;
+}
+
+/* Ensure cells with math/formula content have proper spacing */
+.word-theme td p {
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Prevent inline code from breaking table layout */
+.word-theme td code {
+  white-space: nowrap;
+  font-size: 0.8125em;
+}
+
+/* -- Dark mode table -- */
+.dark .word-theme table {
+  border-color: #334155;
+}
+
+.dark .word-theme thead th {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border-bottom-color: #475569;
+}
+
+.dark .word-theme tbody td {
+  border-bottom-color: #1e293b;
+  color: #cbd5e1;
+}
+
+.dark .word-theme tbody tr:hover {
+  background-color: rgba(30, 41, 59, 0.5);
+}
+
+.dark .word-theme tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ---------------------------------------
+   Math / formula support inside tables
+   --------------------------------------- */
+
+/* KaTeX inline formulas in table cells */
+.word-theme td .katex,
+.word-theme th .katex {
+  font-size: 1em;
+}
+
+/* Display-mode math (block) inside table cells */
+.word-theme td .katex-display {
+  margin: 0.25em 0;
+}
+
+/* Ensure formulas don't overflow cells */
+.word-theme td {
+  overflow: visible;
+}
+
+/* When KaTeX spans or scripts are inside table cells, keep baseline aligned */
+.word-theme td .katex .base {
+  vertical-align: baseline;
+}
+
+/* 表格横向滚动模式 */
+.word-theme table {
+  display: inline-block !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.word-theme thead th,
+.word-theme tbody td {
+  white-space: nowrap !important;
+}

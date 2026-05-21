@@ -33,7 +33,7 @@ func defaultSettings() UserSettings {
 		Window: WindowState{
 			Width:     1024,
 			Height:    768,
-			Maximized: false,
+			Maximized: true,
 		},
 	}
 }

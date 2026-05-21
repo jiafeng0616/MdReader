@@ -32,6 +32,8 @@ type Dictionary = {
         saveError: (error: unknown) => string;
         saved: string;
         saveFailed: (error: unknown) => string;
+        exportPdfFailed?: (error: unknown) => string;
+        exportPdfReady?: string;
         switchToReadMode: string;
         cannotGetContent: string;
         copied: string;
@@ -55,6 +57,7 @@ type Dictionary = {
         switchDark: string;
         save: string;
         copyToWord: string;
+        exportPdf?: string;
         settings: string;
         addContextMenu: string;
         removeContextMenu: string;
@@ -175,6 +178,8 @@ const dictionaries: Record<Language, Dictionary> = {
             saveError: (error) => `Save error: ${error}`,
             saved: 'Saved',
             saveFailed: (error) => `Save failed: ${error}`,
+            exportPdfFailed: (error) => `PDF export failed: ${error}`,
+            exportPdfReady: 'Opening the print dialog. Choose Save as PDF.',
             switchToReadMode: 'Switch to read mode first',
             cannotGetContent: 'Unable to get content',
             copied: 'Copied to clipboard.',
@@ -198,6 +203,7 @@ const dictionaries: Record<Language, Dictionary> = {
             switchDark: 'Switch to dark mode',
             save: 'Save',
             copyToWord: 'Copy to Word',
+            exportPdf: 'Export PDF',
             settings: 'Settings',
             addContextMenu: 'Add to context menu',
             removeContextMenu: 'Remove context menu',

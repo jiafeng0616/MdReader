@@ -9,7 +9,7 @@ import { isDefaultDocumentContent, isDefaultDocumentTitle, languageOptions, useI
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { search } from '@codemirror/search';
-import { FileText, Edit3, Save, Copy, FileIcon, Plus, X, FolderOpen, Settings, Check, Trash2, Sun, Moon, List, Languages } from 'lucide-react';
+import { FileText, Edit3, Save, Copy, FileIcon, Plus, X, FolderOpen, Settings, Check, Trash2, Sun, Moon, List, Printer } from 'lucide-react';
 import { copyHtmlToClipboard } from './utils/clipboard';
 
 type Messages = ReturnType<typeof useI18n>['t'];
@@ -46,7 +46,7 @@ function App() {
 
     const [theme, setTheme] = useState<ThemeMode>('light');
     const [zoom, setZoom] = useState<number>(100);
-    const [windowState, setWindowState] = useState<WindowState>({ width: 1024, height: 768, maximized: false });
+    const [windowState, setWindowState] = useState<WindowState>({ width: 1024, height: 768, maximized: true });
 
     const [settingsReady, setSettingsReady] = useState(false);
     const saveTimerRef = useRef<number | undefined>(undefined);
@@ -64,6 +64,7 @@ function App() {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchMatches, setSearchMatches] = useState<number>(0);
     const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+    const [isExportingPdf, setIsExportingPdf] = useState(false);
 
     const activeTab = tabs.find(t => t.id === activeTabId);
     const currentLanguageOption = languageOptions.find(option => option.value === language) || languageOptions[0];
@@ -419,6 +420,31 @@ function App() {
         }
     };
 
+    const handleExportPdf = async () => {
+        if (activeTab?.isEditMode) {
+            setStatusMsg(t.status.switchToReadMode);
+            return;
+        }
+
+        const container = document.getElementById(`tab-content-${activeTabId}`);
+        const previewDiv = container?.querySelector('#markdown-preview');
+
+        if (!previewDiv) {
+            setStatusMsg(t.status.cannotGetContent);
+            return;
+        }
+
+        try {
+            setIsExportingPdf(true);
+            await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+            setStatusMsg(t.status.exportPdfReady ?? 'Opening the print dialog. Choose Save as PDF.');
+            window.print();
+        } catch (err) {
+            setIsExportingPdf(false);
+            setStatusMsg(t.status.exportPdfFailed?.(err) ?? `PDF export failed: ${err}`);
+        }
+    };
+
     const handleRegisterMenu = async () => {
         try {
             await RegisterContextMenu();
@@ -520,11 +546,17 @@ function App() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [activeTab?.isEditMode]);
 
+    useEffect(() => {
+        const handleAfterPrint = () => setIsExportingPdf(false);
+        window.addEventListener('afterprint', handleAfterPrint);
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
+    }, []);
+
     return (
         <ErrorBoundary messages={t.errorBoundary}>
-            <div className="h-screen flex flex-col bg-gray-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100" onClick={() => { setShowSettingsMenu(false); setShowLanguageMenu(false); }}>
+            <div className="app-shell h-screen flex flex-col bg-gray-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100" onClick={() => { setShowSettingsMenu(false); setShowLanguageMenu(false); }}>
                 {/* 1. Tab Bar */}
-                <div className="flex items-center bg-gray-200 border-b border-gray-300 dark:bg-slate-800 dark:border-slate-700 pt-1 px-2 gap-1 overflow-x-auto select-none no-scrollbar">
+                <div className="no-print flex items-center bg-gray-200 border-b border-gray-300 dark:bg-slate-800 dark:border-slate-700 pt-1 px-2 gap-1 overflow-x-auto select-none no-scrollbar">
                     {tabs.map(tab => (
                         <div
                             key={tab.id}
@@ -560,7 +592,7 @@ function App() {
                 </div>
 
                 {/* 2. Toolbar */}
-                <div className="h-12 bg-white border-b border-gray-200 dark:bg-slate-900 dark:border-slate-800 flex items-center px-4 justify-between shadow-sm z-20 relative">
+                <div className="no-print h-12 bg-white border-b border-gray-200 dark:bg-slate-900 dark:border-slate-800 flex items-center px-4 justify-between shadow-sm z-20 relative">
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleOpenFile}
@@ -599,8 +631,6 @@ function App() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 dark:text-slate-400 mr-2 min-w-[100px] text-right">{statusMsg}</span>
-
                         {/* Zoom Slider (阅读区 50%~300%) */}
                         <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-gray-100 dark:bg-slate-800">
                             <span className="text-xs text-gray-500 dark:text-slate-300 w-[44px] text-right tabular-nums">{zoom}%</span>
@@ -638,6 +668,9 @@ function App() {
                         <button onClick={handleSave} className="p-2 text-gray-600 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800 rounded-lg" title={t.toolbar.save}>
                             <Save size={18} />
                         </button>
+                        <button onClick={handleExportPdf} className="p-2 text-gray-600 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800 rounded-lg" title={t.toolbar.exportPdf ?? 'Export PDF'}>
+                            <Printer size={18} />
+                        </button>
                         <button onClick={handleCopyToWord} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm">
                             <Copy size={15} /> <span className="hidden sm:inline">{t.toolbar.copyToWord}</span>
                         </button>
@@ -654,7 +687,6 @@ function App() {
                                 className={`px-2 py-2 rounded-lg hover:text-blue-600 transition-colors flex items-center gap-1.5 ${showLanguageMenu ? 'bg-gray-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-800'}`}
                                 title={t.language.label}
                             >
-                                <Languages size={18} />
                                 <span className="hidden lg:inline text-xs font-medium">{currentLanguageOption.shortLabel}</span>
                             </button>
 
@@ -719,6 +751,7 @@ function App() {
                             updateTab={updateTab}
                             zoom={zoom}
                             searchQuery={searchQuery}
+                            forceFullRender={isExportingPdf && activeTabId === tab.id}
                             previewMessages={t.preview}
                             onHeadingsChange={handleHeadingsChange}
                             onScrollChange={handleScrollChange}
@@ -727,7 +760,7 @@ function App() {
 
                     {/* 浮动导航栏 */}
                     {showNav && headings.length > 0 && !activeTab?.isEditMode && (
-                        <div className="fixed left-0 top-24 bottom-0 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-r border-gray-200 dark:border-slate-700 shadow-lg z-40 overflow-y-auto">
+                        <div className="no-print fixed left-0 top-24 bottom-0 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-r border-gray-200 dark:border-slate-700 shadow-lg z-40 overflow-y-auto">
                             <div className="p-3 border-b border-gray-200 dark:border-slate-700">
                                 <span className="text-sm font-medium text-gray-600 dark:text-slate-300">{t.document.navTitle}</span>
                             </div>
@@ -785,12 +818,13 @@ function App() {
 }
 
 // 独立的 Tab 内容组件
-const TabContent = ({ tab, isActive, updateTab, zoom, searchQuery, previewMessages, onHeadingsChange, onScrollChange }: {
+const TabContent = ({ tab, isActive, updateTab, zoom, searchQuery, forceFullRender, previewMessages, onHeadingsChange, onScrollChange }: {
     tab: Tab;
     isActive: boolean;
     updateTab: (id: string, updates: Partial<Tab>) => void;
     zoom: number;
     searchQuery?: string;
+    forceFullRender?: boolean;
     previewMessages: {
         optimizing: (progress: number) => string;
         loadingMoreVisible: string;
@@ -807,6 +841,7 @@ const TabContent = ({ tab, isActive, updateTab, zoom, searchQuery, previewMessag
     return (
         <div
             id={`tab-content-${tab.id}`}
+            data-active={isActive ? 'true' : 'false'}
             className="absolute inset-0 overflow-auto scroll-smooth p-4 md:p-6 bg-gray-50 dark:bg-slate-900"
             style={{
                 zIndex: isActive ? 10 : 0,
@@ -830,6 +865,7 @@ const TabContent = ({ tab, isActive, updateTab, zoom, searchQuery, previewMessag
                         <MarkdownPreview
                             content={tab.content}
                             visible={isActive}
+                            forceFullRender={Boolean(forceFullRender)}
                             filePath={tab.filePath}
                             tabId={tab.id}
                             searchQuery={searchQuery}
