@@ -1,7 +1,7 @@
 import juice from 'juice';
 import { wordStyles } from './wordStyles';
 
-export async function copyHtmlToClipboard(htmlContent: string): Promise<void> {
+export async function copyHtmlToClipboard(htmlContent: string, writeFailedMessage: string): Promise<void> {
     // 1. 将 CSS 样式内联到 HTML 中
     // 我们用一个包裹层来应用全局样式
     const wrappedHtml = `<div class="word-export">${htmlContent}</div>`;
@@ -50,6 +50,6 @@ ${inlineHtml}
         await navigator.clipboard.write(data);
     } catch (err) {
         console.error("Clipboard write failed:", err);
-        throw new Error("写入剪贴板失败，请确保您在安全上下文中运行。");
+        throw new Error(writeFailedMessage);
     }
 }

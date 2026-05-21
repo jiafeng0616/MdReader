@@ -1,6 +1,6 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "MdReader",
+  "name": "MdReader 1.1.1",
   "outputfilename": "MdReader",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
@@ -13,7 +13,7 @@
   "info": {
     "productName": "MdReader",
     "companyName": "MyTools",
-    "productVersion": "1.1.0",
+    "productVersion": "1.1.1",
     "copyright": "Copyright 2026",
     "fileAssociations": [
       {

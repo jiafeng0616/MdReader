@@ -3,6 +3,11 @@ package main
 import (
 	"context"
 	"embed"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -15,6 +20,64 @@ import (
 
 //go:embed all:frontend/dist
 var assets embed.FS
+
+// localFileServer serves local files via HTTP
+type localFileServer struct{}
+
+func (s *localFileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		// Backwards compatibility for older URLs: /local-file/C:/path/to/file
+		path = strings.TrimPrefix(r.URL.Path, "/local-file/")
+		if decoded, err := url.PathUnescape(path); err == nil {
+			path = decoded
+		}
+	}
+	if path == "" {
+		http.Error(w, "No file path provided", http.StatusBadRequest)
+		return
+	}
+
+	// Convert forward slashes to backslashes for Windows
+	path = strings.ReplaceAll(path, "/", "\\")
+
+	// Read the file
+	f, err := os.Open(path)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("File not found: %s", path), http.StatusNotFound)
+		return
+	}
+	defer f.Close()
+
+	// Get file info for content type detection
+	info, err := f.Stat()
+	if err != nil {
+		http.Error(w, "Cannot stat file", http.StatusInternalServerError)
+		return
+	}
+
+	// Set content type based on extension
+	ext := strings.ToLower(info.Name())
+	switch {
+	case strings.HasSuffix(ext, ".jpg"), strings.HasSuffix(ext, ".jpeg"):
+		w.Header().Set("Content-Type", "image/jpeg")
+	case strings.HasSuffix(ext, ".png"):
+		w.Header().Set("Content-Type", "image/png")
+	case strings.HasSuffix(ext, ".gif"):
+		w.Header().Set("Content-Type", "image/gif")
+	case strings.HasSuffix(ext, ".webp"):
+		w.Header().Set("Content-Type", "image/webp")
+	case strings.HasSuffix(ext, ".svg"):
+		w.Header().Set("Content-Type", "image/svg+xml")
+	case strings.HasSuffix(ext, ".bmp"):
+		w.Header().Set("Content-Type", "image/bmp")
+	default:
+		w.Header().Set("Content-Type", "application/octet-stream")
+	}
+
+	// Copy file content to response
+	io.Copy(w, f)
+}
 
 func main() {
 	// Create an instance of the app structure
@@ -29,7 +92,8 @@ func main() {
 		Width:  settings.Window.Width,
 		Height: settings.Window.Height,
 		AssetServer: &assetserver.Options{
-			Assets: assets,
+			Assets:  assets,
+			Handler: &localFileServer{},
 		},
 		BackgroundColour: &options.RGBA{R: 255, G: 255, B: 255, A: 1},
 		OnStartup: func(ctx context.Context) {

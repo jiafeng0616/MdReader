@@ -71,3 +71,41 @@
   color: #e5e7eb;
 }
 
+/* ---------------------------------------
+   CodeMirror editor dark mode styles
+   --------------------------------------- */
+.dark .cm-editor {
+  background-color: #1e293b !important;
+}
+
+.dark .cm-editor .cm-content {
+  color: #e2e8f0 !important;
+}
+
+.dark .cm-editor .cm-gutters {
+  background-color: #1e293b !important;
+  border-right-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+.dark .cm-editor .cm-activeLineGutter {
+  background-color: #334155 !important;
+}
+
+.dark .cm-editor .cm-activeLine {
+  background-color: rgba(51, 65, 85, 0.5) !important;
+}
+
+.dark .cm-editor .cm-selectionBackground {
+  background-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .cm-editor .cm-cursor {
+  border-left-color: #e2e8f0 !important;
+}
+
+.dark .cm-editor .cm-matchingBracket {
+  background-color: rgba(59, 130, 246, 0.4) !important;
+  outline: 1px solid rgba(59, 130, 246, 0.6) !important;
+}
+

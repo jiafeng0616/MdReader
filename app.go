@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -195,6 +196,31 @@ func (a *App) ReadFile(path string) (string, error) {
 		return "", err
 	}
 	return string(content), nil
+}
+
+// ReadImageAsBase64 reads an image file and returns base64 data URI
+func (a *App) ReadImageAsBase64(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	ext := strings.ToLower(filepath.Ext(path))
+	mimeType := "image/png"
+	switch ext {
+	case ".jpg", ".jpeg":
+		mimeType = "image/jpeg"
+	case ".gif":
+		mimeType = "image/gif"
+	case ".webp":
+		mimeType = "image/webp"
+	case ".svg":
+		mimeType = "image/svg+xml"
+	case ".bmp":
+		mimeType = "image/bmp"
+	}
+
+	return fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(content)), nil
 }
 
 // SaveFile saves content to a file
