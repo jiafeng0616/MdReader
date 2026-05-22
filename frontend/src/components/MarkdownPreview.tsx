@@ -1,10 +1,11 @@
-import React, { memo, useState, useEffect, useRef } from 'react';
+import React, { memo, useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeRaw from 'rehype-raw';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
+import { ReadImageAsBase64 } from '../../wailsjs/go/main/App';
 import 'highlight.js/styles/github.css';
 import 'katex/dist/katex.min.css';
 
@@ -34,27 +35,54 @@ const INITIAL_CHUNK_SIZE = 3000;
 const INCREMENTAL_CHUNK_SIZE = 3000;
 const RENDER_INTERVAL = 100;
 
-const resolveImageUrl = (src: string, filePath?: string): string => {
-    if (!filePath || !src) return src;
-    if (/^https?:\/\//i.test(src)) return src;
-    if (/^data:/i.test(src)) return src;
-    if (/^file:\/\//i.test(src)) return src;
+const isLocalPath = (src: string): boolean => {
+    if (!src) return false;
+    if (/^https?:\/\//i.test(src)) return false;
+    if (/^data:/i.test(src)) return false;
+    if (/^blob:/i.test(src)) return false;
+    return true;
+};
 
-    const dir = filePath.replace(/[\\/][^\\/]*$/, '');
-    if (/^[A-Za-z]:[\\\/]/.test(src)) {
-        const normalizedPath = src.replace(/\\/g, '/');
-        return '/local-file?path=' + encodeURIComponent(normalizedPath);
+const toAbsolutePath = (src: string, filePath: string): string => {
+    if (/^[A-Za-z]:[\\\/]/.test(src)) return src.replace(/\//g, '\\');
+    if (/^file:\/\//i.test(src)) {
+        let p = src.replace(/^file:\/\/\/?/i, '');
+        p = p.replace(/^\/([A-Za-z]):/i, '$1:');
+        return p.replace(/\//g, '\\');
     }
-
-    const normalizedDir = dir.replace(/\\/g, '/');
-    const normalizedSrc = src.replace(/^\.\//, '');
-    return '/local-file?path=' + encodeURIComponent(normalizedDir + '/' + normalizedSrc);
+    const dir = filePath.replace(/[\\/][^\\/]*$/, '');
+    // Handle relative paths: both ./images/xxx and images/xxx should resolve relative to the markdown file
+    const normalizedSrc = src.replace(/^\.\//, '').replace(/^\//, '');
+    // Decode URL-encoded characters (rehype encodes Chinese characters in src)
+    let decodedSrc: string;
+    try {
+        decodedSrc = decodeURIComponent(normalizedSrc);
+    } catch {
+        decodedSrc = normalizedSrc;
+    }
+    return dir + '\\' + decodedSrc;
 };
 
 const createImageComponent = (filePath?: string) => {
     const ImgComponent = ({ src, alt, ...props }: any) => {
-        const resolvedSrc = resolveImageUrl(src || '', filePath);
-        return <img src={resolvedSrc} alt={alt || ''} {...props} />;
+        const [dataUrl, setDataUrl] = useState('');
+        const imgSrc = src || '';
+
+        useEffect(() => {
+            if (!imgSrc || !isLocalPath(imgSrc) || !filePath) return;
+            const absPath = toAbsolutePath(imgSrc, filePath);
+            ReadImageAsBase64(absPath)
+                .then((data: string) => setDataUrl(data))
+                .catch((err: any) => console.error('ReadImageAsBase64 failed:', absPath, err));
+        }, [imgSrc, filePath]);
+
+        if (isLocalPath(imgSrc) && filePath) {
+            if (dataUrl) {
+                return <img src={dataUrl} alt={alt || ''} {...props} />;
+            }
+            return null;
+        }
+        return <img src={imgSrc} alt={alt || ''} {...props} />;
     };
     return ImgComponent;
 };
@@ -189,6 +217,39 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = memo(({
         };
     };
 
+    const ImageComponent = useMemo(() => createImageComponent(filePath), [filePath]);
+
+    const components = useMemo(() => ({
+        img: ImageComponent,
+        h1: headingComponent('h1'),
+        h2: headingComponent('h2'),
+        h3: headingComponent('h3'),
+        h4: headingComponent('h4'),
+        h5: headingComponent('h5'),
+        h6: headingComponent('h6'),
+        table: ({ children, ...props }: any) => {
+            return <table {...props}>{children}</table>;
+        },
+        p: ({ children, ...props }: any) => {
+            const highlightedChildren = React.Children.map(children, child => {
+                if (typeof child === 'string') {
+                    return highlightText(child, searchQuery);
+                }
+                return child;
+            });
+            return <p {...props}>{highlightedChildren}</p>;
+        },
+        li: ({ children, ...props }: any) => {
+            const highlightedChildren = React.Children.map(children, child => {
+                if (typeof child === 'string') {
+                    return highlightText(child, searchQuery);
+                }
+                return child;
+            });
+            return <li {...props}>{highlightedChildren}</li>;
+        },
+    }), [ImageComponent, searchQuery]);
+
     return (
         <div ref={containerRef} className="flex flex-col items-center relative">
             {!forceFullRender && isRendering && visible && content.length > INITIAL_CHUNK_SIZE && (
@@ -201,36 +262,7 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = memo(({
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkMath]}
                     rehypePlugins={[rehypeRaw as any, [rehypeHighlight, { ignoreMissing: true }], [rehypeKatex, { throwOnError: false }]]}
-                    components={{
-                        img: createImageComponent(filePath),
-                        h1: headingComponent('h1'),
-                        h2: headingComponent('h2'),
-                        h3: headingComponent('h3'),
-                        h4: headingComponent('h4'),
-                        h5: headingComponent('h5'),
-                        h6: headingComponent('h6'),
-                        table: ({ children, ...props }) => {
-                            return <table {...props}>{children}</table>;
-                        },
-                        p: ({ children, ...props }) => {
-                            const highlightedChildren = React.Children.map(children, child => {
-                                if (typeof child === 'string') {
-                                    return highlightText(child, searchQuery);
-                                }
-                                return child;
-                            });
-                            return <p {...props}>{highlightedChildren}</p>;
-                        },
-                        li: ({ children, ...props }) => {
-                            const highlightedChildren = React.Children.map(children, child => {
-                                if (typeof child === 'string') {
-                                    return highlightText(child, searchQuery);
-                                }
-                                return child;
-                            });
-                            return <li {...props}>{highlightedChildren}</li>;
-                        },
-                    }}
+                    components={components}
                 >
                     {displayContent}
                 </ReactMarkdown>

@@ -6,7 +6,21 @@
       "Bash(go doc *)",
       "Bash(npm list *)",
       "WebSearch",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /F /PID 44256)",
+      "Bash(taskkill /F /PID 46872)",
+      "Bash(taskkill /F /PID 13536)",
+      "Bash(taskkill /F /PID 34628)",
+      "Bash(wails dev *)",
+      "Bash(curl -s http://localhost:34115)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:34115/local-file?path=E%3A%2F01MyTools%2FMdReader%2FREADME.md\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:5175/local-file?path=E%3A%2F01MyTools%2FMdReader%2FREADME.md\")",
+      "Bash(curl -s \"http://localhost:34115/local-file?path=E%3A%2F01MyTools%2FMdReader%2FREADME.md\")",
+      "Bash(curl -s \"http://localhost:5175/local-file?path=E%3A%2F01MyTools%2FMdReader%2FREADME.md\")",
+      "Bash(npm install *)",
+      "Bash(wails build *)",
+      "Bash(wails log *)"
     ]
   }
 }

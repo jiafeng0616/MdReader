@@ -200,12 +200,19 @@ func (a *App) ReadFile(path string) (string, error) {
 
 // ReadImageAsBase64 reads an image file and returns base64 data URI
 func (a *App) ReadImageAsBase64(path string) (string, error) {
-	content, err := os.ReadFile(path)
+	// Normalize the path
+	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return "", err
+		absPath = path
+	}
+	absPath = filepath.Clean(absPath)
+
+	content, err := os.ReadFile(absPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read image %s: %w", absPath, err)
 	}
 
-	ext := strings.ToLower(filepath.Ext(path))
+	ext := strings.ToLower(filepath.Ext(absPath))
 	mimeType := "image/png"
 	switch ext {
 	case ".jpg", ".jpeg":
