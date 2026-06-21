@@ -20,10 +20,20 @@ type WindowState struct {
 	Maximized bool `json:"maximized"`
 }
 
+// OpenDocument represents a document that was open when the app was closed
+type OpenDocument struct {
+	FilePath   string `json:"filePath"`
+	Title      string `json:"title"`
+	IsEditMode bool   `json:"isEditMode"`
+	IsActive   bool   `json:"isActive"`
+}
+
 type UserSettings struct {
-	Theme  string      `json:"theme"`
-	Zoom   int         `json:"zoom"`
-	Window WindowState `json:"window"`
+	Theme         string         `json:"theme"`
+	Zoom          int            `json:"zoom"`
+	Window        WindowState    `json:"window"`
+	OpenDocuments []OpenDocument `json:"openDocuments"`
+	ActiveTabId   string         `json:"activeTabId"`
 }
 
 func defaultSettings() UserSettings {
@@ -35,6 +45,8 @@ func defaultSettings() UserSettings {
 			Height:    768,
 			Maximized: true,
 		},
+		OpenDocuments: []OpenDocument{},
+		ActiveTabId:   "",
 	}
 }
 
@@ -258,10 +270,18 @@ func (a *App) OpenFileDialog() ([]string, error) {
 }
 
 // SaveFileDialog opens a system file dialog to save a markdown file
-func (a *App) SaveFileDialog() (string, error) {
+func (a *App) SaveFileDialog(defaultFilename string) (string, error) {
+	// 如果没有提供默认文件名，使用 "文档.md"
+	if defaultFilename == "" {
+		defaultFilename = "文档.md"
+	}
+	// 如果文件名不以 .md 结尾，添加后缀
+	if !strings.HasSuffix(strings.ToLower(defaultFilename), ".md") {
+		defaultFilename += ".md"
+	}
 	selection, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "保存文件",
-		DefaultFilename: "文档.md",
+		DefaultFilename: defaultFilename,
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "Markdown Files",
@@ -273,6 +293,81 @@ func (a *App) SaveFileDialog() (string, error) {
 		return "", err
 	}
 	return selection, nil
+}
+
+// ExportHTMLResult represents the result of ExportHTMLDialog
+type ExportHTMLResult struct {
+	FilePath string `json:"filePath"`
+	Action   string `json:"action"` // "overwrite", "new", or "" (cancelled)
+}
+
+// ExportHTMLDialog opens a system file dialog to export HTML file
+// Returns: ExportHTMLResult with filepath and action
+func (a *App) ExportHTMLDialog(defaultFilename string) ExportHTMLResult {
+	result := ExportHTMLResult{}
+
+	// 如果没有提供默认文件名，使用 "文档.html"
+	if defaultFilename == "" {
+		defaultFilename = "文档.html"
+	}
+	// 如果文件名不以 .html 结尾，添加后缀
+	if !strings.HasSuffix(strings.ToLower(defaultFilename), ".html") {
+		defaultFilename += ".html"
+	}
+
+	// 先打开保存对话框让用户选择保存位置
+	selection, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "导出HTML文件",
+		DefaultFilename: defaultFilename,
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "HTML Files",
+				Pattern:     "*.html",
+			},
+		},
+	})
+	if err != nil || selection == "" {
+		return result // 用户取消或出错
+	}
+
+	// 检查文件是否存在
+	if _, err := os.Stat(selection); err == nil {
+		// 文件存在，询问用户
+		dialogResult, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:          runtime.QuestionDialog,
+			Title:         "文件已存在",
+			Message:       "文件已存在，是否覆盖？",
+			Buttons:       []string{"覆盖", "取消"},
+			DefaultButton: "覆盖",
+			CancelButton:  "取消",
+		})
+		if err != nil {
+			return result
+		}
+
+		if dialogResult == "覆盖" {
+			result.FilePath = selection
+			result.Action = "overwrite"
+			return result
+		}
+		return result // 用户取消
+	}
+
+	// 文件不存在，直接返回
+	result.FilePath = selection
+	result.Action = "new"
+	return result
+}
+
+// SaveHTMLFile saves HTML content to a file
+func (a *App) SaveHTMLFile(path string, content string) error {
+	// 如果文件已存在，先删除
+	if _, err := os.Stat(path); err == nil {
+		if err := os.Remove(path); err != nil {
+			return err
+		}
+	}
+	return os.WriteFile(path, []byte(content), 0644)
 }
 
 // RegisterContextMenu adds a context menu item for .md files

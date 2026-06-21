@@ -16,23 +16,24 @@
   background: #94a3b8;
 }
 
+/* VS Code Dark theme scrollbar */
 .dark ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #424242;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #4f4f4f;
 }
 
-/* Paper/Word reading theme in dark mode */
+/* VS Code Dark theme - Paper/Word reading theme */
 .dark .word-theme {
-  background-color: #0b1220;
-  color: #e5e7eb;
+  background-color: #1e1e1e;
+  color: #cccccc;
   box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
-  border: 1px solid #334155;
+  border: 1px solid #3c3c3c;
 }
 
 .dark .word-theme a {
-  color: #93c5fd;
+  color: #569cd6;
 }
 
 /* ---------------------------------------
@@ -59,54 +60,54 @@
   color: #0f172a;
 }
 
-/* Dark mode code block surface (single-layer) */
+/* VS Code Dark theme code block surface */
 .dark .word-theme pre {
-  background: #0f172a;
-  border: 1px solid #334155;
-  color: #e5e7eb;
+  background: #252526;
+  border: 1px solid #3c3c3c;
+  color: #d4d4d4;
 }
 
 /* Ensure code inherits readable text color in dark mode */
 .dark .word-theme pre code {
-  color: #e5e7eb;
+  color: #d4d4d4;
 }
 
 /* ---------------------------------------
-   CodeMirror editor dark mode styles
+   CodeMirror editor VS Code Dark theme styles
    --------------------------------------- */
 .dark .cm-editor {
-  background-color: #1e293b !important;
+  background-color: #1e1e1e !important;
 }
 
 .dark .cm-editor .cm-content {
-  color: #e2e8f0 !important;
+  color: #cccccc !important;
 }
 
 .dark .cm-editor .cm-gutters {
-  background-color: #1e293b !important;
-  border-right-color: #334155 !important;
-  color: #94a3b8 !important;
+  background-color: #252526 !important;
+  border-right-color: #3c3c3c !important;
+  color: #858585 !important;
 }
 
 .dark .cm-editor .cm-activeLineGutter {
-  background-color: #334155 !important;
+  background-color: #37373d !important;
 }
 
 .dark .cm-editor .cm-activeLine {
-  background-color: rgba(51, 65, 85, 0.5) !important;
+  background-color: rgba(55, 55, 61, 0.5) !important;
 }
 
 .dark .cm-editor .cm-selectionBackground {
-  background-color: rgba(59, 130, 246, 0.3) !important;
+  background-color: rgba(38, 79, 120, 0.3) !important;
 }
 
 .dark .cm-editor .cm-cursor {
-  border-left-color: #e2e8f0 !important;
+  border-left-color: #cccccc !important;
 }
 
 .dark .cm-editor .cm-matchingBracket {
-  background-color: rgba(59, 130, 246, 0.4) !important;
-  outline: 1px solid rgba(59, 130, 246, 0.6) !important;
+  background-color: rgba(38, 79, 120, 0.4) !important;
+  outline: 1px solid rgba(38, 79, 120, 0.6) !important;
 }
 
 /* ---------------------------------------
@@ -197,24 +198,24 @@
   font-size: 0.8125em;
 }
 
-/* -- Dark mode table -- */
+/* -- VS Code Dark theme table -- */
 .dark .word-theme table {
-  border-color: #334155;
+  border-color: #3c3c3c;
 }
 
 .dark .word-theme thead th {
-  background-color: #1e293b;
-  color: #e2e8f0;
-  border-bottom-color: #475569;
+  background-color: #252526;
+  color: #cccccc;
+  border-bottom-color: #4f4f4f;
 }
 
 .dark .word-theme tbody td {
-  border-bottom-color: #1e293b;
-  color: #cbd5e1;
+  border-bottom-color: #252526;
+  color: #cccccc;
 }
 
 .dark .word-theme tbody tr:hover {
-  background-color: rgba(30, 41, 59, 0.5);
+  background-color: rgba(55, 55, 61, 0.5);
 }
 
 .dark .word-theme tbody tr:last-child td {
@@ -256,4 +257,504 @@
 .word-theme thead th,
 .word-theme tbody td {
   white-space: nowrap !important;
+}
+
+/* ---------------------------------------
+   Dark Blue Theme (深蓝色主题)
+   --------------------------------------- */
+
+/* Dark Blue theme base styles */
+.dark-blue {
+  --bg-primary: #0a1628;
+  --bg-secondary: #112240;
+  --bg-tertiary: #1a365d;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --border-color: #2d4a6f;
+  --accent-color: #3b82f6;
+  --accent-hover: #60a5fa;
+}
+
+/* Dark Blue theme scrollbar */
+.dark-blue ::-webkit-scrollbar-thumb {
+  background: #2d4a6f;
+}
+.dark-blue ::-webkit-scrollbar-thumb:hover {
+  background: #3d5a8f;
+}
+
+/* Dark Blue theme word theme */
+.dark-blue .word-theme {
+  background: linear-gradient(135deg, #0a1628 0%, #112240 100%);
+  color: #e2e8f0;
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.15);
+  border: 1px solid #2d4a6f;
+}
+
+.dark-blue .word-theme a {
+  color: #60a5fa;
+}
+
+/* Dark Blue theme code blocks */
+.dark-blue .word-theme pre {
+  background: #0f172a;
+  border: 1px solid #2d4a6f;
+  color: #e5e7eb;
+}
+
+.dark-blue .word-theme pre code {
+  color: #e5e7eb;
+}
+
+/* Dark Blue theme CodeMirror */
+.dark-blue .cm-editor {
+  background-color: #112240 !important;
+}
+
+.dark-blue .cm-editor .cm-content {
+  color: #e2e8f0 !important;
+}
+
+.dark-blue .cm-editor .cm-gutters {
+  background-color: #112240 !important;
+  border-right-color: #2d4a6f !important;
+  color: #64748b !important;
+}
+
+.dark-blue .cm-editor .cm-activeLineGutter {
+  background-color: #1a365d !important;
+}
+
+.dark-blue .cm-editor .cm-activeLine {
+  background-color: rgba(45, 74, 111, 0.5) !important;
+}
+
+.dark-blue .cm-editor .cm-selectionBackground {
+  background-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark-blue .cm-editor .cm-cursor {
+  border-left-color: #e2e8f0 !important;
+}
+
+.dark-blue .cm-editor .cm-matchingBracket {
+  background-color: rgba(59, 130, 246, 0.4) !important;
+  outline: 1px solid rgba(59, 130, 246, 0.6) !important;
+}
+
+/* Dark Blue theme tables */
+.dark-blue .word-theme table {
+  border-color: #2d4a6f;
+}
+
+.dark-blue .word-theme thead th {
+  background-color: #1a365d;
+  color: #e2e8f0;
+  border-bottom-color: #2d4a6f;
+}
+
+.dark-blue .word-theme tbody td {
+  border-bottom-color: #1a365d;
+  color: #cbd5e1;
+}
+
+.dark-blue .word-theme tbody tr:hover {
+  background-color: rgba(26, 54, 93, 0.5);
+}
+
+/* Dark Blue theme toolbar and UI */
+.dark-blue .app-shell {
+  background-color: #0a1628 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark-blue .bg-gray-200,
+.dark-blue .dark\:bg-slate-800 {
+  background-color: #112240 !important;
+}
+
+.dark-blue .bg-white,
+.dark-blue .dark\:bg-slate-900 {
+  background-color: #0a1628 !important;
+}
+
+.dark-blue .border-gray-300,
+.dark-blue .dark\:border-slate-700 {
+  border-color: #2d4a6f !important;
+}
+
+.dark-blue .text-gray-600,
+.dark-blue .dark\:text-slate-200 {
+  color: #e2e8f0 !important;
+}
+
+.dark-blue .text-gray-500,
+.dark-blue .dark\:text-slate-300 {
+  color: #94a3b8 !important;
+}
+
+/* ---------------------------------------
+   Solarized Light Theme
+   --------------------------------------- */
+
+/* Solarized Light scrollbar */
+.solarized-light ::-webkit-scrollbar-thumb {
+  background: #93a1a1;
+}
+.solarized-light ::-webkit-scrollbar-thumb:hover {
+  background: #657b83;
+}
+
+/* Solarized Light word theme */
+.solarized-light .word-theme {
+  background-color: #fdf6e3;
+  color: #657b83;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eee8d5;
+}
+
+.solarized-light .word-theme a {
+  color: #268bd2;
+}
+
+/* Solarized Light code blocks */
+.solarized-light .word-theme pre {
+  background: #eee8d5;
+  border: 1px solid #ddd6c4;
+  color: #657b83;
+}
+
+.solarized-light .word-theme pre code {
+  color: #657b83;
+}
+
+/* Solarized Light CodeMirror */
+.solarized-light .cm-editor {
+  background-color: #fdf6e3 !important;
+}
+
+.solarized-light .cm-editor .cm-content {
+  color: #657b83 !important;
+}
+
+.solarized-light .cm-editor .cm-gutters {
+  background-color: #fdf6e3 !important;
+  border-right-color: #eee8d5 !important;
+  color: #93a1a1 !important;
+}
+
+.solarized-light .cm-editor .cm-activeLineGutter {
+  background-color: #eee8d5 !important;
+}
+
+.solarized-light .cm-editor .cm-activeLine {
+  background-color: rgba(238, 232, 213, 0.5) !important;
+}
+
+.solarized-light .cm-editor .cm-selectionBackground {
+  background-color: rgba(38, 139, 210, 0.2) !important;
+}
+
+.solarized-light .cm-editor .cm-cursor {
+  border-left-color: #657b83 !important;
+}
+
+.solarized-light .cm-editor .cm-matchingBracket {
+  background-color: rgba(38, 139, 210, 0.3) !important;
+  outline: 1px solid rgba(38, 139, 210, 0.5) !important;
+}
+
+/* Solarized Light tables */
+.solarized-light .word-theme table {
+  border-color: #ddd6c4;
+}
+
+.solarized-light .word-theme thead th {
+  background-color: #eee8d5;
+  color: #586e75;
+  border-bottom-color: #93a1a1;
+}
+
+.solarized-light .word-theme tbody td {
+  border-bottom-color: #eee8d5;
+  color: #657b83;
+}
+
+.solarized-light .word-theme tbody tr:hover {
+  background-color: rgba(238, 232, 213, 0.5);
+}
+
+/* Solarized Light toolbar and UI */
+.solarized-light .app-shell {
+  background-color: #fdf6e3 !important;
+  color: #657b83 !important;
+}
+
+.solarized-light .bg-gray-200,
+.solarized-light .dark\:bg-slate-800 {
+  background-color: #eee8d5 !important;
+}
+
+.solarized-light .bg-white,
+.solarized-light .dark\:bg-slate-900 {
+  background-color: #fdf6e3 !important;
+}
+
+.solarized-light .border-gray-300,
+.solarized-light .dark\:border-slate-700 {
+  border-color: #ddd6c4 !important;
+}
+
+.solarized-light .text-gray-600,
+.solarized-light .dark\:text-slate-200 {
+  color: #657b83 !important;
+}
+
+.solarized-light .text-gray-500,
+.solarized-light .dark\:text-slate-300 {
+  color: #93a1a1 !important;
+}
+
+/* ---------------------------------------
+   Solarized Dark Theme
+   --------------------------------------- */
+
+/* Solarized Dark scrollbar */
+.solarized-dark ::-webkit-scrollbar-thumb {
+  background: #586e75;
+}
+.solarized-dark ::-webkit-scrollbar-thumb:hover {
+  background: #657b83;
+}
+
+/* Solarized Dark word theme */
+.solarized-dark .word-theme {
+  background-color: #002b36;
+  color: #839496;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  border: 1px solid #073642;
+}
+
+.solarized-dark .word-theme a {
+  color: #268bd2;
+}
+
+/* Solarized Dark code blocks */
+.solarized-dark .word-theme pre {
+  background: #073642;
+  border: 1px solid #002b36;
+  color: #839496;
+}
+
+.solarized-dark .word-theme pre code {
+  color: #839496;
+}
+
+/* Solarized Dark CodeMirror */
+.solarized-dark .cm-editor {
+  background-color: #002b36 !important;
+}
+
+.solarized-dark .cm-editor .cm-content {
+  color: #839496 !important;
+}
+
+.solarized-dark .cm-editor .cm-gutters {
+  background-color: #002b36 !important;
+  border-right-color: #073642 !important;
+  color: #586e75 !important;
+}
+
+.solarized-dark .cm-editor .cm-activeLineGutter {
+  background-color: #073642 !important;
+}
+
+.solarized-dark .cm-editor .cm-activeLine {
+  background-color: rgba(7, 54, 66, 0.5) !important;
+}
+
+.solarized-dark .cm-editor .cm-selectionBackground {
+  background-color: rgba(38, 139, 210, 0.2) !important;
+}
+
+.solarized-dark .cm-editor .cm-cursor {
+  border-left-color: #839496 !important;
+}
+
+.solarized-dark .cm-editor .cm-matchingBracket {
+  background-color: rgba(38, 139, 210, 0.3) !important;
+  outline: 1px solid rgba(38, 139, 210, 0.5) !important;
+}
+
+/* Solarized Dark tables */
+.solarized-dark .word-theme table {
+  border-color: #073642;
+}
+
+.solarized-dark .word-theme thead th {
+  background-color: #073642;
+  color: #839496;
+  border-bottom-color: #586e75;
+}
+
+.solarized-dark .word-theme tbody td {
+  border-bottom-color: #073642;
+  color: #839496;
+}
+
+.solarized-dark .word-theme tbody tr:hover {
+  background-color: rgba(7, 54, 66, 0.5);
+}
+
+/* Solarized Dark toolbar and UI */
+.solarized-dark .app-shell {
+  background-color: #002b36 !important;
+  color: #839496 !important;
+}
+
+.solarized-dark .bg-gray-200,
+.solarized-dark .dark\:bg-slate-800 {
+  background-color: #073642 !important;
+}
+
+.solarized-dark .bg-white,
+.solarized-dark .dark\:bg-slate-900 {
+  background-color: #002b36 !important;
+}
+
+.solarized-dark .border-gray-300,
+.solarized-dark .dark\:border-slate-700 {
+  border-color: #073642 !important;
+}
+
+.solarized-dark .text-gray-600,
+.solarized-dark .dark\:text-slate-200 {
+  color: #839496 !important;
+}
+
+.solarized-dark .text-gray-500,
+.solarized-dark .dark\:text-slate-300 {
+  color: #586e75 !important;
+}
+
+/* ---------------------------------------
+   Monokai Theme
+   --------------------------------------- */
+
+/* Monokai scrollbar */
+.monokai ::-webkit-scrollbar-thumb {
+  background: #49483e;
+}
+.monokai ::-webkit-scrollbar-thumb:hover {
+  background: #5c5a4e;
+}
+
+/* Monokai word theme */
+.monokai .word-theme {
+  background-color: #272822;
+  color: #f8f8f2;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  border: 1px solid #383830;
+}
+
+.monokai .word-theme a {
+  color: #f92672;
+}
+
+/* Monokai code blocks */
+.monokai .word-theme pre {
+  background: #383830;
+  border: 1px solid #49483e;
+  color: #f8f8f2;
+}
+
+.monokai .word-theme pre code {
+  color: #f8f8f2;
+}
+
+/* Monokai CodeMirror */
+.monokai .cm-editor {
+  background-color: #272822 !important;
+}
+
+.monokai .cm-editor .cm-content {
+  color: #f8f8f2 !important;
+}
+
+.monokai .cm-editor .cm-gutters {
+  background-color: #272822 !important;
+  border-right-color: #383830 !important;
+  color: #75715e !important;
+}
+
+.monokai .cm-editor .cm-activeLineGutter {
+  background-color: #383830 !important;
+}
+
+.monokai .cm-editor .cm-activeLine {
+  background-color: rgba(56, 56, 48, 0.5) !important;
+}
+
+.monokai .cm-editor .cm-selectionBackground {
+  background-color: rgba(249, 38, 114, 0.2) !important;
+}
+
+.monokai .cm-editor .cm-cursor {
+  border-left-color: #f8f8f2 !important;
+}
+
+.monokai .cm-editor .cm-matchingBracket {
+  background-color: rgba(249, 38, 114, 0.3) !important;
+  outline: 1px solid rgba(249, 38, 114, 0.5) !important;
+}
+
+/* Monokai tables */
+.monokai .word-theme table {
+  border-color: #383830;
+}
+
+.monokai .word-theme thead th {
+  background-color: #383830;
+  color: #f8f8f2;
+  border-bottom-color: #49483e;
+}
+
+.monokai .word-theme tbody td {
+  border-bottom-color: #383830;
+  color: #f8f8f2;
+}
+
+.monokai .word-theme tbody tr:hover {
+  background-color: rgba(56, 56, 48, 0.5);
+}
+
+/* Monokai toolbar and UI */
+.monokai .app-shell {
+  background-color: #272822 !important;
+  color: #f8f8f2 !important;
+}
+
+.monokai .bg-gray-200,
+.monokai .dark\:bg-slate-800 {
+  background-color: #383830 !important;
+}
+
+.monokai .bg-white,
+.monokai .dark\:bg-slate-900 {
+  background-color: #272822 !important;
+}
+
+.monokai .border-gray-300,
+.monokai .dark\:border-slate-700 {
+  border-color: #383830 !important;
+}
+
+.monokai .text-gray-600,
+.monokai .dark\:text-slate-200 {
+  color: #f8f8f2 !important;
+}
+
+.monokai .text-gray-500,
+.monokai .dark\:text-slate-300 {
+  color: #75715e !important;
 }

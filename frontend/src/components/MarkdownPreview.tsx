@@ -29,6 +29,7 @@ interface MarkdownPreviewProps {
     };
     onHeadingsChange?: (tabId: string, headings: NavItem[]) => void;
     onScrollChange?: (activeId: string) => void;
+    isFullWidth?: boolean;
 }
 
 const INITIAL_CHUNK_SIZE = 3000;
@@ -116,6 +117,242 @@ const highlightText = (text: string, query: string): React.ReactNode => {
     });
 };
 
+// Mermaid diagram renderer component
+const MermaidDiagram: React.FC<{ code: string }> = ({ code }) => {
+    const [svg, setSvg] = useState<string>('');
+    const [error, setError] = useState<string>('');
+    const containerRef = useRef<HTMLDivElement>(null);
+    const mermaidRef = useRef<any>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const initAndRender = async () => {
+            try {
+                // Dynamically import mermaid to ensure it's loaded
+                const mermaidModule = await import('mermaid');
+                const mermaidApi = mermaidModule.default || mermaidModule;
+
+                if (!cancelled) {
+                    mermaidRef.current = mermaidApi;
+
+                    // Initialize mermaid with theme detection
+                    mermaidApi.initialize({
+                        startOnLoad: false,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+                        securityLevel: 'loose',
+                        fontFamily: 'inherit',
+                    });
+
+                    const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                    const result = await mermaidApi.render(id, code.trim());
+
+                    if (!cancelled) {
+                        // Handle both object result (v10) and direct string return
+                        const svgCode = typeof result === 'string' ? result : (result as any).svg;
+                        setSvg(svgCode);
+                        setError('');
+                    }
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err instanceof Error ? err.message : String(err));
+                    setSvg('');
+                }
+            }
+        };
+
+        initAndRender();
+        return () => { cancelled = true; };
+    }, [code]);
+
+    if (error) {
+        return (
+            <div className="mermaid-error my-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="text-red-600 dark:text-red-400 text-sm font-medium mb-2">Mermaid Diagram Error</div>
+                <pre className="text-xs text-red-500 dark:text-red-300 whitespace-pre-wrap overflow-auto">{error}</pre>
+                <details className="mt-2">
+                    <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer">View source code</summary>
+                    <pre className="mt-1 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{code}</pre>
+                </details>
+            </div>
+        );
+    }
+
+    if (!svg) {
+        return (
+            <div className="mermaid-loading my-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+                <span className="text-gray-400 dark:text-gray-500 text-sm">Loading diagram...</span>
+            </div>
+        );
+    }
+
+    return (
+        <div ref={containerRef} className="mermaid-svg my-4 flex justify-center" dangerouslySetInnerHTML={{ __html: svg }} />
+    );
+};
+
+// Draw.io diagram renderer component
+const DrawioDiagram: React.FC<{ code: string }> = ({ code }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const isDrawioXml = code.includes('<mxfile') || code.includes('<diagram');
+
+    if (isExpanded) {
+        return (
+            <div className="drawio-expanded my-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Draw.io Diagram</span>
+                    <button
+                        onClick={() => setIsExpanded(false)}
+                        className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                        Collapse
+                    </button>
+                </div>
+                <div className="p-4 bg-white dark:bg-gray-900 overflow-auto max-h-96">
+                    <pre className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{code}</pre>
+                </div>
+            </div>
+        );
+    }
+
+    if (isDrawioXml) {
+        return (
+            <div className="drawio-preview my-4 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Draw.io Diagram</span>
+                    <button
+                        onClick={() => setIsExpanded(true)}
+                        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                    >
+                        View XML
+                    </button>
+                </div>
+                <div className="bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700 p-4 text-center">
+                    <div className="text-gray-400 dark:text-gray-500 text-sm mb-2">
+                        Draw.io diagram preview
+                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                        Click "View XML" to see the source code
+                    </div>
+                    <div className="mt-3 text-xs text-gray-400 dark:text-gray-500">
+                        Tip: Use the{' '}
+                        <a
+                            href="https://app.diagrams.net/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                        >
+                            diagrams.net
+                        </a>{' '}
+                        editor to open and edit this diagram
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Non-XML drawio code (e.g., simple diagram text format)
+    return (
+        <div className="drawio-preview my-4 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Draw.io Diagram</div>
+            <pre className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap overflow-auto">{code}</pre>
+        </div>
+    );
+};
+
+// Excalidraw diagram renderer component
+const ExcalidrawDiagram: React.FC<{ code: string }> = ({ code }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    let parsedData: any = null;
+    let elements: any[] = [];
+
+    try {
+        parsedData = JSON.parse(code);
+        elements = parsedData?.elements || [];
+    } catch {
+        // Invalid JSON
+    }
+
+    const isValidExcalidraw = parsedData && typeof parsedData === 'object' && elements.length > 0;
+
+    if (isExpanded) {
+        return (
+            <div className="excalidraw-expanded my-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Excalidraw Diagram ({elements.length} elements)</span>
+                    <button
+                        onClick={() => setIsExpanded(false)}
+                        className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                        Collapse
+                    </button>
+                </div>
+                <div className="p-4 bg-white dark:bg-gray-900 overflow-auto max-h-96">
+                    <pre className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{code}</pre>
+                </div>
+            </div>
+        );
+    }
+
+    if (isValidExcalidraw) {
+        const rectangles = elements.filter((el: any) => el.type === 'rectangle').length;
+        const ellipses = elements.filter((el: any) => el.type === 'ellipse').length;
+        const arrows = elements.filter((el: any) => el.type === 'arrow').length;
+        const lines = elements.filter((el: any) => el.type === 'line').length;
+        const texts = elements.filter((el: any) => el.type === 'text').length;
+
+        return (
+            <div className="excalidraw-preview my-4 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Excalidraw Diagram ({elements.length} elements)</span>
+                    <button
+                        onClick={() => setIsExpanded(true)}
+                        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                    >
+                        View JSON
+                    </button>
+                </div>
+                <div className="bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="text-center mb-3">
+                        <div className="text-gray-400 dark:text-gray-500 text-sm">
+                            Excalidraw hand-drawn diagram
+                        </div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            {rectangles > 0 && <span className="mr-2">Rectangles: {rectangles}</span>}
+                            {ellipses > 0 && <span className="mr-2">Ellipses: {ellipses}</span>}
+                            {arrows > 0 && <span className="mr-2">Arrows: {arrows}</span>}
+                            {lines > 0 && <span className="mr-2">Lines: {lines}</span>}
+                            {texts > 0 && <span className="mr-2">Texts: {texts}</span>}
+                        </div>
+                    </div>
+                    <div className="text-center text-xs text-gray-400 dark:text-gray-500">
+                        Tip: Use{' '}
+                        <a
+                            href="https://excalidraw.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                        >
+                            Excalidraw
+                        </a>{' '}
+                        to edit this diagram
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Invalid or empty excalidraw data
+    return (
+        <div className="excalidraw-preview my-4 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Excalidraw Diagram</div>
+            <div className="text-xs text-red-500 dark:text-red-400 mb-2">Invalid or empty Excalidraw data</div>
+            <pre className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap overflow-auto max-h-32">{code.slice(0, 200)}...</pre>
+        </div>
+    );
+};
+
 export const MarkdownPreview: React.FC<MarkdownPreviewProps> = memo(({
     content,
     visible = true,
@@ -126,6 +363,7 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = memo(({
     messages,
     onHeadingsChange,
     onScrollChange,
+    isFullWidth = false,
 }) => {
     const [renderedLength, setRenderedLength] = useState(INITIAL_CHUNK_SIZE);
     const [isRendering, setIsRendering] = useState(false);
@@ -239,7 +477,7 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = memo(({
             });
             return <p {...props}>{highlightedChildren}</p>;
         },
-        li: ({ children, ...props }: any) => {
+        li: ({ children, ordered, ...props }: any) => {
             const highlightedChildren = React.Children.map(children, child => {
                 if (typeof child === 'string') {
                     return highlightText(child, searchQuery);
@@ -247,6 +485,74 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = memo(({
                 return child;
             });
             return <li {...props}>{highlightedChildren}</li>;
+        },
+        code: ({ className, children, ...props }: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            const code = String(children).replace(/\n$/, '');
+
+            if (match && match[1] === 'mermaid') {
+                return <MermaidDiagram code={code} />;
+            }
+
+            if (match && match[1] === 'drawio') {
+                return <DrawioDiagram code={code} />;
+            }
+
+            if (match && match[1] === 'excalidraw') {
+                return <ExcalidrawDiagram code={code} />;
+            }
+
+            // Default code block rendering
+            return (
+                <code className={className} {...props}>
+                    {children}
+                </code>
+            );
+        },
+        a: ({ href, children, ...props }: any) => {
+            // Internal anchor link (e.g., [text](#heading-id))
+            if (href && href.startsWith('#')) {
+                // Decode URL-encoded characters (e.g., %E7%AC%AC -> 第)
+                let targetId = decodeURIComponent(href.slice(1));
+                
+                const handleClick = (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    const container = containerRef.current?.closest('[id^="tab-content-"]');
+                    if (!container) return;
+
+                    // Try exact id first, then with heading- prefix
+                    let element = container.querySelector(`#${CSS.escape(targetId)}`);
+                    if (!element && !targetId.startsWith('heading-')) {
+                        element = container.querySelector(`#${CSS.escape('heading-' + targetId)}`);
+                    }
+
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                };
+                return (
+                    <a
+                        href={href}
+                        onClick={handleClick}
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 cursor-pointer"
+                        {...props}
+                    >
+                        {children}
+                    </a>
+                );
+            }
+            // External link - open in default browser
+            return (
+                <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                    {...props}
+                >
+                    {children}
+                </a>
+            );
         },
     }), [ImageComponent, searchQuery]);
 
@@ -258,7 +564,10 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = memo(({
                 </div>
             )}
 
-            <div id="markdown-preview" className="word-theme prose prose-slate dark:prose-invert max-w-none mx-auto">
+            <div 
+                id="markdown-preview" 
+                className={`word-theme prose prose-slate dark:prose-invert max-w-none mx-auto ${isFullWidth ? 'word-theme-fullwidth' : ''}`}
+            >
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkMath]}
                     rehypePlugins={[rehypeRaw as any, [rehypeHighlight, { ignoreMissing: true }], [rehypeKatex, { throwOnError: false }]]}
@@ -281,5 +590,6 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = memo(({
         && prevProps.forceFullRender === nextProps.forceFullRender
         && prevProps.filePath === nextProps.filePath
         && prevProps.searchQuery === nextProps.searchQuery
-        && prevProps.messages === nextProps.messages;
+        && prevProps.messages === nextProps.messages
+        && prevProps.isFullWidth === nextProps.isFullWidth;
 });

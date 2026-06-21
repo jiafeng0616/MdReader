@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { ReadFile, SaveFile, GetCommandLineArgs, OpenFileDialog, SaveFileDialog, RegisterContextMenu, UnregisterContextMenu, CheckPendingFiles, GetSettings, SaveSettings } from '../wailsjs/go/main/App';
-import { EventsOn, WindowGetSize, WindowIsMaximised, WindowSetDarkTheme, WindowSetLightTheme } from '../wailsjs/runtime/runtime';
+import { ReadFile, SaveFile, GetCommandLineArgs, OpenFileDialog, SaveFileDialog, ExportHTMLDialog, SaveHTMLFile, RegisterContextMenu, UnregisterContextMenu, CheckPendingFiles, GetSettings, SaveSettings } from '../wailsjs/go/main/App';
+import { EventsOn, WindowGetSize, WindowIsMaximised, WindowSetDarkTheme, WindowSetLightTheme, WindowFullscreen, WindowUnfullscreen, WindowIsFullscreen } from '../wailsjs/runtime/runtime';
 import { main as models } from '../wailsjs/go/models';
 import { MarkdownPreview, NavItem } from './components/MarkdownPreview';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -9,8 +9,9 @@ import { isDefaultDocumentContent, isDefaultDocumentTitle, languageOptions, useI
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { search } from '@codemirror/search';
-import { FileText, Edit3, Save, Copy, FileIcon, Plus, X, FolderOpen, Settings, Check, Trash2, Sun, Moon, List, Printer } from 'lucide-react';
+import { FileText, Edit3, Save, Copy, FileIcon, Plus, X, FolderOpen, Settings, Check, Trash2, Sun, Moon, List, Printer, Maximize, Maximize2, Minimize2, Download, FileCode } from 'lucide-react';
 import { copyHtmlToClipboard } from './utils/clipboard';
+import { generateHtmlDocument } from './utils/markdownToHtml';
 
 type Messages = ReturnType<typeof useI18n>['t'];
 
@@ -29,7 +30,7 @@ interface Tab {
     isDirty: boolean;
 }
 
-type ThemeMode = 'light' | 'dark';
+type ThemeMode = 'light' | 'dark' | 'dark-blue' | 'solarized-light' | 'solarized-dark' | 'monokai';
 interface WindowState {
     width: number;
     height: number;
@@ -43,10 +44,13 @@ function App() {
     const [statusMsg, setStatusMsg] = useState<string>("");
     const [showSettingsMenu, setShowSettingsMenu] = useState(false);
     const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+    const [showThemeMenu, setShowThemeMenu] = useState(false);
 
-    const [theme, setTheme] = useState<ThemeMode>('light');
+    const [theme, setTheme] = useState<ThemeMode>('dark-blue');
     const [zoom, setZoom] = useState<number>(100);
     const [windowState, setWindowState] = useState<WindowState>({ width: 1024, height: 768, maximized: true });
+    const [isFullWidth, setIsFullWidth] = useState(false);
+    const [isFullScreen, setIsFullScreen] = useState(false);
 
     const [settingsReady, setSettingsReady] = useState(false);
     const saveTimerRef = useRef<number | undefined>(undefined);
@@ -158,9 +162,9 @@ function App() {
         const initSettings = async () => {
             try {
                 const s = await GetSettings(); // main.UserSettings
-                const t: ThemeMode = (s?.theme === 'dark' ? 'dark' : 'light');
+                const themeMode: ThemeMode = (s?.theme === 'dark' ? 'dark' : 'light');
                 const z = Math.min(300, Math.max(50, Number(s?.zoom ?? 100)));
-                setTheme(t);
+                setTheme(themeMode);
                 setZoom(z);
                 if (s?.window) {
                     setWindowState({
@@ -169,7 +173,43 @@ function App() {
                         maximized: Boolean(s.window.maximized),
                     });
                 }
-                applyTheme(t);
+                applyTheme(themeMode);
+                
+                // 恢复上次打开的文档
+                if (s?.openDocuments && s.openDocuments.length > 0) {
+                    const restoredTabs: Tab[] = await Promise.all(s.openDocuments.map(async (doc: any) => {
+                        let content = t.document.defaultContent;
+                        // 如果有文件路径，重新读取文件内容
+                        if (doc.filePath && doc.filePath.trim()) {
+                            try {
+                                content = await ReadFile(doc.filePath);
+                            } catch {
+                                // 文件读取失败，使用默认内容
+                                content = t.document.defaultContent;
+                            }
+                        }
+                        return {
+                            id: Date.now().toString() + Math.random().toString().slice(2, 5),
+                            title: doc.title || t.document.untitled,
+                            filePath: doc.filePath || "",
+                            content,
+                            isEditMode: doc.isEditMode || false,
+                            isDirty: false,
+                        };
+                    }));
+                    setTabs(restoredTabs);
+                    if (s.activeTabId) {
+                        // 找到对应的 tab（使用索引匹配，因为 id 会重新生成）
+                        const activeIndex = s.openDocuments.findIndex((doc: any) => doc.isActive);
+                        if (activeIndex >= 0 && activeIndex < restoredTabs.length) {
+                            setActiveTabId(restoredTabs[activeIndex].id);
+                        } else {
+                            setActiveTabId(restoredTabs[0].id);
+                        }
+                    } else {
+                        setActiveTabId(restoredTabs[0].id);
+                    }
+                }
             } catch (e) {
                 // fallback: keep defaults
                 document.documentElement.classList.toggle('dark', false);
@@ -218,10 +258,19 @@ function App() {
         if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
         saveTimerRef.current = window.setTimeout(() => {
             try {
+                // 保存打开的文档列表（仅保存文件路径，不保存内容）
+                const openDocuments = tabs.map(tab => ({
+                    filePath: tab.filePath,
+                    title: tab.title,
+                    isEditMode: tab.isEditMode,
+                    isActive: tab.id === activeTabId,
+                }));
                 SaveSettings(models.UserSettings.createFrom({
                     theme,
                     zoom,
                     window: windowState,
+                    openDocuments,
+                    activeTabId,
                 }));
             } catch {
                 // ignore
@@ -230,10 +279,12 @@ function App() {
         return () => {
             if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
         };
-    }, [settingsReady, theme, zoom, windowState.width, windowState.height, windowState.maximized]);
+    }, [settingsReady, theme, zoom, windowState.width, windowState.height, windowState.maximized, tabs, activeTabId]);
 
-    // 初始化逻辑
+    // 初始化逻辑（等待设置加载完成）
     useEffect(() => {
+        if (!settingsReady) return;
+        
         const init = async () => {
             let hasOpenedFile = false;
 
@@ -254,6 +305,7 @@ function App() {
                 hasOpenedFile = true;
             }
 
+            // 3. 如果没有打开文件且没有从设置中恢复的文档，创建新文档
             if (!hasOpenedFile) {
                 setTimeout(() => {
                     setTabs(currentTabs => {
@@ -276,7 +328,7 @@ function App() {
         };
 
         init();
-    }, []); 
+    }, [settingsReady]); 
 
     const createNewTab = (title = t.document.untitled, content = "", filePath = "") => {
         const newTab: Tab = {
@@ -347,6 +399,128 @@ function App() {
         }
     };
     
+    const handleThemeChange = (newTheme: ThemeMode) => {
+        setTheme(newTheme);
+        // 移除所有主题类
+        document.documentElement.classList.remove('dark', 'dark-blue', 'solarized-light', 'solarized-dark', 'monokai');
+        // 添加当前主题类
+        document.documentElement.classList.add(newTheme);
+        // 判断是否为暗色主题
+        const isDarkTheme = newTheme === 'dark' || newTheme === 'dark-blue' || newTheme === 'solarized-dark' || newTheme === 'monokai';
+        if (isDarkTheme) {
+            document.documentElement.classList.add('dark');
+        }
+        try {
+            if (isDarkTheme) {
+                WindowSetDarkTheme();
+            } else {
+                WindowSetLightTheme();
+            }
+        } catch {
+            // ignore
+        }
+    };
+
+    const handleSaveAs = async () => {
+        if (!activeTab) return;
+        try {
+            // 使用原文档名 + "_update" 作为默认文件名
+            let defaultName = activeTab.title;
+            // 移除 .md 后缀（如果有）
+            if (defaultName.toLowerCase().endsWith('.md')) {
+                defaultName = defaultName.slice(0, -3);
+            }
+            // 添加 "_update" 后缀
+            defaultName += '_update';
+            
+            let savePath = await SaveFileDialog(defaultName);
+            if (!savePath) return;
+            if (!savePath.toLowerCase().endsWith(".md")) savePath += ".md";
+            const fileName = savePath.split(/[\\/]/).pop() || t.document.genericName;
+            await SaveFile(savePath, activeTab.content);
+            // 创建新的 tab 来保存为新文件
+            const newTab: Tab = {
+                id: Date.now().toString() + Math.random().toString().slice(2, 5),
+                title: fileName,
+                filePath: savePath,
+                content: activeTab.content,
+                isEditMode: activeTab.isEditMode,
+                isDirty: false,
+            };
+            setTabs(prev => [...prev, newTab]);
+            setActiveTabId(newTab.id);
+            setStatusMsg(`Saved as ${fileName}`);
+            setTimeout(() => setStatusMsg(""), 2000);
+        } catch (err) {
+            setStatusMsg(t.status.saveError(err));
+        }
+    };
+
+    const handleExportHtml = async () => {
+        if (!activeTab) return;
+        try {
+            // 使用原文档名作为默认文件名（将 .md 改为 .html）
+            let defaultName = activeTab.title;
+            // 移除 .md 后缀（如果有）
+            if (defaultName.toLowerCase().endsWith('.md')) {
+                defaultName = defaultName.slice(0, -3);
+            }
+            // 添加 .html 后缀
+            defaultName += '.html';
+
+            // 调用后端对话框，检查文件是否存在
+            const result = await ExportHTMLDialog(defaultName);
+            if (!result.filePath) return; // 用户取消
+
+            // 生成HTML内容
+            const htmlContent = generateHtmlDocument(
+                activeTab.title.replace(/\.md$/i, ''),
+                activeTab.content,
+                activeTab.content
+            );
+
+            // 保存HTML文件
+            await SaveHTMLFile(result.filePath, htmlContent);
+
+            const fileName = result.filePath.split(/[\\/]/).pop() || 'document.html';
+            setStatusMsg(`Exported to ${fileName}`);
+            setTimeout(() => setStatusMsg(""), 2000);
+        } catch (err) {
+            setStatusMsg(t.status.saveError(err));
+        }
+    };
+
+    const handleFullScreen = async () => {
+        try {
+            const isFullScreen = await WindowIsFullscreen();
+            if (!isFullScreen) {
+                WindowFullscreen();
+                setIsFullScreen(true);
+            } else {
+                WindowUnfullscreen();
+                setIsFullScreen(false);
+            }
+        } catch (err) {
+            console.error('Fullscreen error:', err);
+        }
+    };
+
+    // 监听全屏状态变化
+    useEffect(() => {
+        const checkFullScreenState = async () => {
+            try {
+                const isFullScreen = await WindowIsFullscreen();
+                setIsFullScreen(isFullScreen);
+            } catch {
+                // ignore
+            }
+        };
+        
+        // 定期检查全屏状态（因为 Wails 没有全屏状态变化事件）
+        const interval = setInterval(checkFullScreenState, 500);
+        return () => clearInterval(interval);
+    }, []);
+
     // 监听 tabs 变化，如果关完了自动新建
     useEffect(() => {
         if (tabs.length === 0 && activeTabId === "EMPTY_STATE_CHECK") { 
@@ -378,7 +552,12 @@ function App() {
         let targetPath = activeTab.filePath;
         if (!targetPath) {
             try {
-                targetPath = await SaveFileDialog();
+                // 使用当前文档名作为默认文件名
+                let defaultName = activeTab.title;
+                if (defaultName.toLowerCase().endsWith('.md')) {
+                    defaultName = defaultName.slice(0, -3);
+                }
+                targetPath = await SaveFileDialog(defaultName);
                 if (!targetPath) return;
                 if (!targetPath.toLowerCase().endsWith(".md")) targetPath += ".md";
                 const fileName = targetPath.split(/[\\/]/).pop() || t.document.genericName;
@@ -592,7 +771,7 @@ function App() {
                 </div>
 
                 {/* 2. Toolbar */}
-                <div className="no-print h-12 bg-white border-b border-gray-200 dark:bg-slate-900 dark:border-slate-800 flex items-center px-4 justify-between shadow-sm z-20 relative">
+                <div className={`no-print h-12 bg-white border-b border-gray-200 dark:bg-slate-900 dark:border-slate-800 flex items-center px-4 justify-between shadow-sm z-20 relative transition-opacity duration-300 ${isFullScreen ? 'opacity-0 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleOpenFile}
@@ -646,30 +825,96 @@ function App() {
                             />
                         </div>
 
-                        {/* Theme Toggle */}
+                        {/* Full Width Toggle */}
                         <button
-                            onClick={() => {
-                                const next = theme === 'dark' ? 'light' : 'dark';
-                                setTheme(next);
-                                document.documentElement.classList.toggle('dark', next === 'dark');
-                                try {
-                                    if (next === 'dark') WindowSetDarkTheme();
-                                    else WindowSetLightTheme();
-                                } catch {
-                                    // ignore
-                                }
-                            }}
-                            className="p-2 text-gray-600 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800 rounded-lg"
-                            title={theme === 'dark' ? t.toolbar.switchLight : t.toolbar.switchDark}
+                            onClick={() => setIsFullWidth(!isFullWidth)}
+                            className={`p-2 rounded-lg transition-colors ${isFullWidth ? 'bg-blue-100 text-blue-600 dark:bg-slate-700 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+                            title={isFullWidth ? t.toolbar.normalWidth : t.toolbar.fullWidth}
                         >
-                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                            <Maximize2 size={18} />
                         </button>
+
+                        {/* Full Screen Toggle */}
+                        <button
+                            onClick={handleFullScreen}
+                            className={`p-2 rounded-lg transition-colors ${isFullScreen ? 'bg-blue-100 text-blue-600 dark:bg-slate-700 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+                            title={isFullScreen ? t.toolbar.exitFullScreen : t.toolbar.enterFullScreen}
+                        >
+                            {isFullScreen ? <Minimize2 size={18} /> : <Maximize size={18} />}
+                        </button>
+
+                        {/* Theme Selection Dropdown */}
+                        <div className="relative">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowThemeMenu(!showThemeMenu);
+                                    setShowSettingsMenu(false);
+                                    setShowLanguageMenu(false);
+                                }}
+                                className={`p-2 rounded-lg transition-colors ${showThemeMenu ? 'bg-gray-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+                                title={t.toolbar.theme}
+                            >
+                                {theme === 'dark' ? <Moon size={18} /> : theme === 'dark-blue' ? <Moon size={18} /> : <Sun size={18} />}
+                            </button>
+
+                            {showThemeMenu && (
+                                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 dark:bg-slate-900 dark:border-slate-700 rounded-lg shadow-xl z-50 py-1 flex flex-col" onClick={(e) => e.stopPropagation()}>
+                                    <div className="px-4 py-2 text-xs font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wide">
+                                        {t.toolbar.theme}
+                                    </div>
+                                    <button
+                                        onClick={() => { handleThemeChange('light'); setShowThemeMenu(false); }}
+                                        className={`px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${theme === 'light' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                                    >
+                                        <Sun size={14} /> {t.toolbar.themeLight}
+                                    </button>
+                                    <button
+                                        onClick={() => { handleThemeChange('dark'); setShowThemeMenu(false); }}
+                                        className={`px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${theme === 'dark' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                                    >
+                                        <Moon size={14} /> {t.toolbar.themeDark}
+                                    </button>
+                                    <button
+                                        onClick={() => { handleThemeChange('dark-blue'); setShowThemeMenu(false); }}
+                                        className={`px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${theme === 'dark-blue' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                                    >
+                                        <Moon size={14} /> {t.toolbar.themeDarkBlue}
+                                    </button>
+                                    <div className="border-t border-gray-200 dark:border-slate-700 my-1"></div>
+                                    <button
+                                        onClick={() => { handleThemeChange('solarized-light'); setShowThemeMenu(false); }}
+                                        className={`px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${theme === 'solarized-light' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                                    >
+                                        <Sun size={14} /> {t.toolbar.themeSolarizedLight}
+                                    </button>
+                                    <button
+                                        onClick={() => { handleThemeChange('solarized-dark'); setShowThemeMenu(false); }}
+                                        className={`px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${theme === 'solarized-dark' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                                    >
+                                        <Moon size={14} /> {t.toolbar.themeSolarizedDark}
+                                    </button>
+                                    <button
+                                        onClick={() => { handleThemeChange('monokai'); setShowThemeMenu(false); }}
+                                        className={`px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${theme === 'monokai' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                                    >
+                                        <Moon size={14} /> {t.toolbar.themeMonokai}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
                         <button onClick={handleSave} className="p-2 text-gray-600 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800 rounded-lg" title={t.toolbar.save}>
                             <Save size={18} />
                         </button>
+                        <button onClick={handleSaveAs} className="p-2 text-gray-600 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800 rounded-lg" title={t.toolbar.saveAs}>
+                            <Download size={18} />
+                        </button>
                         <button onClick={handleExportPdf} className="p-2 text-gray-600 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800 rounded-lg" title={t.toolbar.exportPdf ?? 'Export PDF'}>
                             <Printer size={18} />
+                        </button>
+                        <button onClick={handleExportHtml} className="p-2 text-gray-600 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800 rounded-lg" title={t.toolbar.exportHtml ?? 'Export HTML'}>
+                            <FileCode size={18} />
                         </button>
                         <button onClick={handleCopyToWord} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm">
                             <Copy size={15} /> <span className="hidden sm:inline">{t.toolbar.copyToWord}</span>
@@ -741,6 +986,23 @@ function App() {
                     </div>
                 </div>
 
+                {/* 全屏模式下的悬浮退出按钮 */}
+                {isFullScreen && (
+                    <div className="fixed top-1 right-4 z-50" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleFullScreen();
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-black/60 hover:bg-black/80 text-white rounded-lg backdrop-blur-sm transition-all shadow-lg"
+                            title={t.toolbar.exitFullScreen}
+                        >
+                            <Minimize2 size={18} />
+                            <span className="text-sm font-medium">{t.toolbar.exitFullScreen}</span>
+                        </button>
+                    </div>
+                )}
+
                 {/* 3. Content Area - 渲染所有 Tab 以保持状态 */}
                 <div className="flex-1 bg-gray-50 dark:bg-slate-900 relative"> {/* 移除 overflow-hidden, 让子元素 absolute 定位更自由 */}
                     {tabs.map(tab => (
@@ -755,6 +1017,7 @@ function App() {
                             previewMessages={t.preview}
                             onHeadingsChange={handleHeadingsChange}
                             onScrollChange={handleScrollChange}
+                            isFullWidth={isFullWidth}
                         />
                     ))}
 
@@ -818,7 +1081,7 @@ function App() {
 }
 
 // 独立的 Tab 内容组件
-const TabContent = ({ tab, isActive, updateTab, zoom, searchQuery, forceFullRender, previewMessages, onHeadingsChange, onScrollChange }: {
+const TabContent = ({ tab, isActive, updateTab, zoom, searchQuery, forceFullRender, previewMessages, onHeadingsChange, onScrollChange, isFullWidth }: {
     tab: Tab;
     isActive: boolean;
     updateTab: (id: string, updates: Partial<Tab>) => void;
@@ -832,6 +1095,7 @@ const TabContent = ({ tab, isActive, updateTab, zoom, searchQuery, forceFullRend
     };
     onHeadingsChange?: (tabId: string, headings: NavItem[]) => void;
     onScrollChange?: (activeId: string) => void;
+    isFullWidth: boolean;
 }) => {
     const editorExtensions = useMemo(() => [
         markdown(),
@@ -850,7 +1114,7 @@ const TabContent = ({ tab, isActive, updateTab, zoom, searchQuery, forceFullRend
             }}
         >
             {tab.isEditMode ? (
-                <div className="max-w-5xl mx-auto bg-white dark:bg-slate-900 shadow-sm rounded-lg overflow-hidden h-full border border-gray-200 dark:border-slate-700">
+                <div className={`${isFullWidth ? 'max-w-none' : 'max-w-5xl'} mx-auto bg-white dark:bg-slate-900 shadow-sm rounded-lg overflow-hidden h-full border border-gray-200 dark:border-slate-700`}>
                     <CodeMirror
                         value={tab.content}
                         height="100%"
@@ -872,6 +1136,7 @@ const TabContent = ({ tab, isActive, updateTab, zoom, searchQuery, forceFullRend
                             messages={previewMessages}
                             onHeadingsChange={onHeadingsChange}
                             onScrollChange={onScrollChange}
+                            isFullWidth={isFullWidth}
                         />
                     </div>
                 </div>

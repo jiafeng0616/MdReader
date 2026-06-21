@@ -23,11 +23,30 @@ No more struggling with Markdown-to-Word formatting issues.
 - **Right-click menu**: Supports adding to the Windows context menu, right-click any `.md` file to open it instantly.
 - **Multi-tab**: Supports opening multiple documents simultaneously, with independent state management across tabs.
 - **State persistence**: Editor scroll position and cursor position are perfectly preserved when switching tabs (using Z-Index stacking technique).
+- **Session restore**: Automatically restores all open documents when you restart the app.
 
 ### 4. 📝 Read & Edit in One
 - **Immersive reading**: Standard rendering based on GitHub Flavored Markdown with syntax highlighting.
 - **Efficient editing**: Integrated CodeMirror editor with real-time editing and saving support.
 - **Batch open**: Select and open multiple Markdown files at once via the file dialog.
+
+### 5. 📊 Diagrams Support
+- **Mermaid**: Flowcharts, sequence diagrams, Gantt charts, and more — rendered beautifully in the preview.
+- **Draw.io**: Embedded Draw.io XML diagrams are rendered directly.
+- **Excalidraw**: Hand-drawn style diagrams from Excalidraw JSON are supported.
+
+### 6. 🔗 Navigation & Links
+- **Table of Contents**: Sidebar navigation shows document headings, click to jump to any section.
+- **Internal anchor links**: Click `[link](#heading)` to smoothly scroll to the target heading.
+- **External links**: Click to open in your default browser.
+
+### 7. 🎨 Theme & Display Options
+- **Multiple themes**: Choose from Dark Blue (default), Dark (VS Code style), Light, Solarized Light, Solarized Dark, or Monokai themes.
+- **Full-width mode**: Toggle between A4 fixed width and full window width for reading.
+- **Fullscreen mode**: Enter fullscreen for distraction-free reading (press ESC to exit or click the floating exit button).
+- **Save As**: Save current document as a new file with default name suggestion (original name + "_update").
+- **Export HTML**: Export current document as an HTML file with styles, dark/light theme toggle support (prompts if file exists).
+- **Session restore**: Automatically restores all open documents when you restart the app (only saves file paths to minimize config size).
 
 ---
 
@@ -37,7 +56,7 @@ No more struggling with Markdown-to-Word formatting issues.
 *   **Frontend**: React + TypeScript + Vite — handles UI interactions.
 *   **Styling**: TailwindCSS — modern responsive layout.
 *   **Editor**: @uiw/react-codemirror.
-*   **Rendering**: react-markdown + rehype-highlight (automatically ignores unsupported language tags).
+*   **Rendering**: react-markdown + rehype-highlight + mermaid (diagrams support).
 
 ---
 

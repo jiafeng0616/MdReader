@@ -43,6 +43,13 @@
   min-height: 297mm; /* A4 高度 */
 }
 
+/* 全宽模式 */
+.word-theme.word-theme-fullwidth {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: auto !important;
+}
+
 /* 屏幕较窄时自适应 */
 @media (max-width: 800px) {
   .word-theme {
